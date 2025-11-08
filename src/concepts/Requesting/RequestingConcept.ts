@@ -8,7 +8,7 @@ import "jsr:@std/dotenv/load";
 import { Video } from "../ManageVideo/ManageVideoConcept.ts";
 import { User } from "../User/UserConcept.ts";
 import SessioningConcept from "@concepts/Sessioning/SessioningConcept.ts";
-import ManageVideoConcept from "@concepts/manageVideo/ManageVideoConcept.ts";
+import ManageVideoConcept from "@concepts/ManageVideo/ManageVideoConcept.ts";
 
 /**
  * # Requesting concept configuration

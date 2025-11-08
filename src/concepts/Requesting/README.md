@@ -115,3 +115,20 @@ or in TypeScript,
 See [sample.sync](src/syncs/sample.sync.ts) for example synchronizations that implement a basic request/response cycle that mimics a passthrough route for the `/LikertSurvey/createSurvey` path.
 
 > **Important**: the `path` parameter does NOT take into account the base URL, and hence the examples above use "/LikertSurvey/createSurvey" instead of "/api/LikertSurvey/createSurvey". You should take this into account when pattern matching in synchronizations against literal values for the path.
+
+## Design Documentation
+
+This section contains key design decisions, reflections, and evolution of the MirrorMotion project throughout development.
+
+### Design Evolution
+- **[Assignment 4a General Design Moments](design/interestingMoments/assn4aGeneralDesignMoments.md)** - Early design decisions and concept choices
+- **[Assignment 4b Updated Design Document](design/interestingMoments/assn4bUpdatedDesignDoc.md)** - UI implementation updates and feature refinements
+- **[Assignment 4c Final Design Document](design/interestingMoments/assn4cDesignDoc.md)** - Complete design summary and architectural decisions
+
+### Development Reflections
+- **[Final Project Reflection](design/interestingMoments/assn4cReflection.md)** - Lessons learned, tool usage insights, and development experience
+
+
+### Demo and Testing
+- **[Application Demo Video](https://drive.google.com/file/d/1IiLEXUmZkZjdTmIvCTTGwu_MUFd1QcD-/view?usp=sharing)** - Complete walkthrough of MirrorMotion functionality
+- **[Execution Trace](design/interestingMoments/trace.md)** - Detailed sync execution trace showing request/response flow
