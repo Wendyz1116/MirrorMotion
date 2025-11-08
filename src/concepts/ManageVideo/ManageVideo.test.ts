@@ -63,7 +63,7 @@ Deno.test(
       // -------------------------------
       // Step 3: Retrieve the uploaded practice video
       // -------------------------------
-      const retrievePracticeResult = await manageVideoConcept.retrieve({
+      const retrievePracticeResult = await manageVideoConcept._retrieve({
         video: practiceVideoId,
         caller: testUser,
       });
@@ -89,7 +89,7 @@ Deno.test(
       // -------------------------------
       // Step 4: Retrieve the uploaded reference video
       // -------------------------------
-      const retrieveReferenceResult = await manageVideoConcept.retrieve({
+      const retrieveReferenceResult = await manageVideoConcept._retrieve({
         video: referenceVideoId,
         caller: testUser,
       });
@@ -134,7 +134,7 @@ Deno.test("Action: retrieve - Successfully retrieves video by owner", async () =
     assertExists(uploadedVideoId);
 
     // 2. Retrieve the video as the owner
-    const retrieveResult = await manageVideoConcept.retrieve({
+    const retrieveResult = await manageVideoConcept._retrieve({
       video: uploadedVideoId,
       caller: testUser,
     });
@@ -196,7 +196,7 @@ Deno.test("Action: retrieve - Fails to retrieve video by non-owner", async () =>
     assertExists(uploadedVideoId);
 
     // 2. Try to retrieve the video as anotherUser (non-owner)
-    const retrieveResult = await manageVideoConcept.retrieve({
+    const retrieveResult = await manageVideoConcept._retrieve({
       video: uploadedVideoId,
       caller: anotherUser,
     });
@@ -227,7 +227,7 @@ Deno.test("Action: retrieve - Fails to retrieve non-existent video", async () =>
 
   try {
     // Try to retrieve a video with a non-existent ID
-    const retrieveResult = await manageVideoConcept.retrieve({
+    const retrieveResult = await manageVideoConcept._retrieve({
       video: nonExistentVideoId,
       caller: testUser,
     });
@@ -280,7 +280,7 @@ Deno.test("Action: delete - Successfully deletes video by owner", async () => {
     // If delete returns an explicit success confirmation, assert it here.
 
     // 3. Try to retrieve the video after deletion to confirm it's gone
-    const retrieveAfterDeleteResult = await manageVideoConcept.retrieve({
+    const retrieveAfterDeleteResult = await manageVideoConcept._retrieve({
       video: uploadedVideoId,
       caller: testUser,
     });
@@ -337,7 +337,7 @@ Deno.test("Action: delete - Fails to delete video by non-owner", async () => {
     // Optionally, assert specific error message: assertEquals(error, "Not authorized", "Error message should indicate authorization issue.");
 
     // 3. Verify the video still exists by retrieving it as the owner
-    const retrieveAfterFailedDeleteResult = await manageVideoConcept.retrieve({
+    const retrieveAfterFailedDeleteResult = await manageVideoConcept._retrieve({
       video: uploadedVideoId,
       caller: testUser,
     });

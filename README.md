@@ -41,3 +41,19 @@ Due to an error discussed [here](https://piazza.com/class/melw05erqym3qt/post/17
 > 
 **Confirming your setup:**  
 After running the tests, check your MongoDB Atlas console. Temporary collections are created in the `test-mirror-motion` database and are automatically wiped with each new test run to ensure a clean state.
+
+## Design Documentation
+
+This section contains key design decisions, reflections, and evolution of the MirrorMotion project throughout development.
+
+### Design Evolution
+- **[Assignment 4a General Design Moments](design/interestingMoments/assn4aGeneralDesignMoments.md)** - Early design decisions and concept choices
+- **[Assignment 4b Updated Design Document](design/interestingMoments/assn4bUpdatedDesignDoc.md)** - UI implementation updates and feature refinements
+- **[Assignment 4c Final Design Document](design/interestingMoments/assn4cDesignDoc.md)** - Complete design summary and architectural decisions
+
+### Development Reflections
+- **[Final Project Reflection](design/interestingMoments/assn4cReflection.md)** - Lessons learned, tool usage insights, and development experience
+
+### Demo and Testing
+- **[Application Demo Video](https://drive.google.com/file/d/1IiLEXUmZkZjdTmIvCTTGwu_MUFd1QcD-/view?usp=sharing)** - Complete walkthrough of MirrorMotion functionality
+- **[Execution Trace](design/interestingMoments/trace.md)** - Detailed sync execution trace showing request/response flow
