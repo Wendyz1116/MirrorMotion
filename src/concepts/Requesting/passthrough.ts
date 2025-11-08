@@ -27,13 +27,22 @@
 export const inclusions: Record<string, string> = {
   // User
   "/api/User/register": "allow anyone to register",
+
+  // ManageVideo
   "/api/ManageVideo/streamVideo": "return special video/quicktime content type",
   "/api/ManageVideo/upload": "use special formData for big video files",
-  "/api/LikertSurvey/_getSurveyQuestions": "this is a public query",
-  "/api/LikertSurvey/_getSurveyResponses": "responses are public",
-  "/api/LikertSurvey/_getRespondentAnswers": "answers are visible",
-  "/api/LikertSurvey/submitResponse": "allow anyone to submit response",
-  "/api/LikertSurvey/updateResponse": "allow anyone to update their response",
+
+  // Feedback
+  "/api/Feedback/analyze": "allow pose analysis for uploaded videos",
+  "/api/Feedback/getFeedback": "retrieve feedback data for users",
+  "/api/Feedback/findFeedback": "query existing feedback records",
+
+  // PoseBreakdown
+  "/api/PoseBreakdown/getPoseData":
+    "access pose detection results for analysis",
+
+  // Sessioning
+  "/api/Sessioning/_getUser": "internal user lookup for session validation",
 };
 
 /**
@@ -58,7 +67,7 @@ export const exclusions: Array<string> = [
 
   // User
   "/api/User/login",
-  "api/logout",
+  "/api/logout",
 
   // Sessioning
   "/api/Sessioning/create",

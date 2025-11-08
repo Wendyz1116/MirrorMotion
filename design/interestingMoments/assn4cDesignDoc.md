@@ -30,7 +30,7 @@ MirrorMotion evolved from a complex dance learning platform into a more straight
 
 ## Visual Design Refinements from Assignment 2
 - Maintained core design from Assignment 2 UI sketches while implementing practical improvements
-- Updated from Assignment 4b's single-page layout with dual panels to a multi-page structure where each concept has its dedicated interface
+- Updated from Assignment 4b's initial checkoff single-page layout with dual panels to a multi-page structure where each concept has its dedicated interface
 - Simplified feedback display prioritizing actionable insights with intelligent "worst frame" detection
 
 ## User Flow Optimization

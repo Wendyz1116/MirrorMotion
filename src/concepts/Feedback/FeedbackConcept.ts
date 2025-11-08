@@ -227,189 +227,189 @@ export default class FeedbackConcept {
    * @effects A new feedback record is created and its ID is returned.
    * @returns The ID of the newly created feedback record, or an error if validation fails.
    */
-  async analyzeAngles(
-    {
-      referenceVideoId,
-      practiceVideoId,
-      referencePoseData,
-      practicePoseData,
-    }: {
-      referenceVideoId: string;
-      practiceVideoId: string;
-      referencePoseData: NumericPoseData[][];
-      practicePoseData: NumericPoseData[][];
-    },
-  ): Promise<{ feedback: Feedback; feedbackText: string } | { error: string }> {
-    try {
-      if (typeof referencePoseData === "string") {
-        referencePoseData = JSON.parse(referencePoseData);
-      }
-      if (typeof practicePoseData === "string") {
-        practicePoseData = JSON.parse(practicePoseData);
-      }
-    } catch (e) {
-      return { error: `Failed to parse pose data: ${e}` };
-    }
+  // async analyzeAngles(
+  //   {
+  //     referenceVideoId,
+  //     practiceVideoId,
+  //     referencePoseData,
+  //     practicePoseData,
+  //   }: {
+  //     referenceVideoId: string;
+  //     practiceVideoId: string;
+  //     referencePoseData: NumericPoseData[][];
+  //     practicePoseData: NumericPoseData[][];
+  //   },
+  // ): Promise<{ feedback: Feedback; feedbackText: string } | { error: string }> {
+  //   try {
+  //     if (typeof referencePoseData === "string") {
+  //       referencePoseData = JSON.parse(referencePoseData);
+  //     }
+  //     if (typeof practicePoseData === "string") {
+  //       practicePoseData = JSON.parse(practicePoseData);
+  //     }
+  //   } catch (e) {
+  //     return { error: `Failed to parse pose data: ${e}` };
+  //   }
 
-    if (!Array.isArray(referencePoseData) || !Array.isArray(practicePoseData)) {
-      return { error: "Pose data must be arrays after parsing" };
-    }
+  //   if (!Array.isArray(referencePoseData) || !Array.isArray(practicePoseData)) {
+  //     return { error: "Pose data must be arrays after parsing" };
+  //   }
 
-    const n = Math.min(referencePoseData.length, practicePoseData.length);
-    const frameScores: number[] = [];
-    const frameIntervalMs = 100; // 10 frames per second
+  //   const n = Math.min(referencePoseData.length, practicePoseData.length);
+  //   const frameScores: number[] = [];
+  //   const frameIntervalMs = 100; // 10 frames per second
 
-    // Define the main skeletal connections for angle comparison
-    const connections = [
-      [KEY_LANDMARKS.LEFT_SHOULDER, KEY_LANDMARKS.RIGHT_SHOULDER],
-      [KEY_LANDMARKS.LEFT_SHOULDER, KEY_LANDMARKS.LEFT_ELBOW],
-      [KEY_LANDMARKS.LEFT_ELBOW, KEY_LANDMARKS.LEFT_WRIST],
-      [KEY_LANDMARKS.RIGHT_SHOULDER, KEY_LANDMARKS.RIGHT_ELBOW],
-      [KEY_LANDMARKS.RIGHT_ELBOW, KEY_LANDMARKS.RIGHT_WRIST],
-      [KEY_LANDMARKS.LEFT_SHOULDER, KEY_LANDMARKS.LEFT_HIP],
-      [KEY_LANDMARKS.RIGHT_SHOULDER, KEY_LANDMARKS.RIGHT_HIP],
-      [KEY_LANDMARKS.LEFT_HIP, KEY_LANDMARKS.RIGHT_HIP],
-      [KEY_LANDMARKS.LEFT_HIP, KEY_LANDMARKS.LEFT_KNEE],
-      [KEY_LANDMARKS.LEFT_KNEE, KEY_LANDMARKS.LEFT_ANKLE],
-      [KEY_LANDMARKS.RIGHT_HIP, KEY_LANDMARKS.RIGHT_KNEE],
-      [KEY_LANDMARKS.RIGHT_KNEE, KEY_LANDMARKS.RIGHT_ANKLE],
-    ];
+  //   // Define the main skeletal connections for angle comparison
+  //   const connections = [
+  //     [KEY_LANDMARKS.LEFT_SHOULDER, KEY_LANDMARKS.RIGHT_SHOULDER],
+  //     [KEY_LANDMARKS.LEFT_SHOULDER, KEY_LANDMARKS.LEFT_ELBOW],
+  //     [KEY_LANDMARKS.LEFT_ELBOW, KEY_LANDMARKS.LEFT_WRIST],
+  //     [KEY_LANDMARKS.RIGHT_SHOULDER, KEY_LANDMARKS.RIGHT_ELBOW],
+  //     [KEY_LANDMARKS.RIGHT_ELBOW, KEY_LANDMARKS.RIGHT_WRIST],
+  //     [KEY_LANDMARKS.LEFT_SHOULDER, KEY_LANDMARKS.LEFT_HIP],
+  //     [KEY_LANDMARKS.RIGHT_SHOULDER, KEY_LANDMARKS.RIGHT_HIP],
+  //     [KEY_LANDMARKS.LEFT_HIP, KEY_LANDMARKS.RIGHT_HIP],
+  //     [KEY_LANDMARKS.LEFT_HIP, KEY_LANDMARKS.LEFT_KNEE],
+  //     [KEY_LANDMARKS.LEFT_KNEE, KEY_LANDMARKS.LEFT_ANKLE],
+  //     [KEY_LANDMARKS.RIGHT_HIP, KEY_LANDMARKS.RIGHT_KNEE],
+  //     [KEY_LANDMARKS.RIGHT_KNEE, KEY_LANDMARKS.RIGHT_ANKLE],
+  //   ];
 
-    // Helper to compute the 3D angle between two vectors
-    const computeAngle = (a: any, b: any, c: any): number => {
-      // angle at b between (a-b) and (c-b)
-      const v1 = [a.x - b.x, a.y - b.y, a.z - b.z];
-      const v2 = [c.x - b.x, c.y - b.y, c.z - b.z];
-      const dot = v1[0] * v2[0] +
-        v1[1] * v2[1] +
-        v1[2] * v2[2];
-      const mag1 = Math.sqrt(v1[0] ** 2 + v1[1] ** 2 + v1[2] ** 2);
-      const mag2 = Math.sqrt(v2[0] ** 2 + v2[1] ** 2 + v2[2] ** 2);
-      if (mag1 === 0 || mag2 === 0) return 0;
-      const cosTheta = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
-      return Math.acos(cosTheta); // radians
-    };
+  //   // Helper to compute the 3D angle between two vectors
+  //   const computeAngle = (a: any, b: any, c: any): number => {
+  //     // angle at b between (a-b) and (c-b)
+  //     const v1 = [a.x - b.x, a.y - b.y, a.z - b.z];
+  //     const v2 = [c.x - b.x, c.y - b.y, c.z - b.z];
+  //     const dot = v1[0] * v2[0] +
+  //       v1[1] * v2[1] +
+  //       v1[2] * v2[2];
+  //     const mag1 = Math.sqrt(v1[0] ** 2 + v1[1] ** 2 + v1[2] ** 2);
+  //     const mag2 = Math.sqrt(v2[0] ** 2 + v2[1] ** 2 + v2[2] ** 2);
+  //     if (mag1 === 0 || mag2 === 0) return 0;
+  //     const cosTheta = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
+  //     return Math.acos(cosTheta); // radians
+  //   };
 
-    for (let i = 0; i < n; i++) {
-      const refPose = referencePoseData[i];
-      const pracPose = practicePoseData[i];
+  //   for (let i = 0; i < n; i++) {
+  //     const refPose = referencePoseData[i];
+  //     const pracPose = practicePoseData[i];
 
-      if (!refPose || !pracPose) {
-        frameScores.push(0);
-        continue;
-      }
+  //     if (!refPose || !pracPose) {
+  //       frameScores.push(0);
+  //       continue;
+  //     }
 
-      let totalAngleDiff = 0;
-      let totalCount = 0;
+  //     let totalAngleDiff = 0;
+  //     let totalCount = 0;
 
-      // For each joint triplet, compute the angular difference
-      // Use key limb segments to derive mid-joint angles (e.g., elbow between shoulder–elbow–wrist)
-      const angleTriplets = [
-        [
-          KEY_LANDMARKS.LEFT_SHOULDER,
-          KEY_LANDMARKS.LEFT_ELBOW,
-          KEY_LANDMARKS.LEFT_WRIST,
-        ],
-        [
-          KEY_LANDMARKS.RIGHT_SHOULDER,
-          KEY_LANDMARKS.RIGHT_ELBOW,
-          KEY_LANDMARKS.RIGHT_WRIST,
-        ],
-        [
-          KEY_LANDMARKS.LEFT_HIP,
-          KEY_LANDMARKS.LEFT_KNEE,
-          KEY_LANDMARKS.LEFT_ANKLE,
-        ],
-        [
-          KEY_LANDMARKS.RIGHT_HIP,
-          KEY_LANDMARKS.RIGHT_KNEE,
-          KEY_LANDMARKS.RIGHT_ANKLE,
-        ],
-        [
-          KEY_LANDMARKS.LEFT_SHOULDER,
-          KEY_LANDMARKS.LEFT_HIP,
-          KEY_LANDMARKS.LEFT_KNEE,
-        ],
-        [
-          KEY_LANDMARKS.RIGHT_SHOULDER,
-          KEY_LANDMARKS.RIGHT_HIP,
-          KEY_LANDMARKS.RIGHT_KNEE,
-        ],
-      ];
+  //     // For each joint triplet, compute the angular difference
+  //     // Use key limb segments to derive mid-joint angles (e.g., elbow between shoulder–elbow–wrist)
+  //     const angleTriplets = [
+  //       [
+  //         KEY_LANDMARKS.LEFT_SHOULDER,
+  //         KEY_LANDMARKS.LEFT_ELBOW,
+  //         KEY_LANDMARKS.LEFT_WRIST,
+  //       ],
+  //       [
+  //         KEY_LANDMARKS.RIGHT_SHOULDER,
+  //         KEY_LANDMARKS.RIGHT_ELBOW,
+  //         KEY_LANDMARKS.RIGHT_WRIST,
+  //       ],
+  //       [
+  //         KEY_LANDMARKS.LEFT_HIP,
+  //         KEY_LANDMARKS.LEFT_KNEE,
+  //         KEY_LANDMARKS.LEFT_ANKLE,
+  //       ],
+  //       [
+  //         KEY_LANDMARKS.RIGHT_HIP,
+  //         KEY_LANDMARKS.RIGHT_KNEE,
+  //         KEY_LANDMARKS.RIGHT_ANKLE,
+  //       ],
+  //       [
+  //         KEY_LANDMARKS.LEFT_SHOULDER,
+  //         KEY_LANDMARKS.LEFT_HIP,
+  //         KEY_LANDMARKS.LEFT_KNEE,
+  //       ],
+  //       [
+  //         KEY_LANDMARKS.RIGHT_SHOULDER,
+  //         KEY_LANDMARKS.RIGHT_HIP,
+  //         KEY_LANDMARKS.RIGHT_KNEE,
+  //       ],
+  //     ];
 
-      for (const [aIdx, bIdx, cIdx] of angleTriplets) {
-        const refA = refPose[aIdx], refB = refPose[bIdx], refC = refPose[cIdx];
-        const pracA = pracPose[aIdx],
-          pracB = pracPose[bIdx],
-          pracC = pracPose[cIdx];
-        if (!refA || !refB || !refC || !pracA || !pracB || !pracC) continue;
+  //     for (const [aIdx, bIdx, cIdx] of angleTriplets) {
+  //       const refA = refPose[aIdx], refB = refPose[bIdx], refC = refPose[cIdx];
+  //       const pracA = pracPose[aIdx],
+  //         pracB = pracPose[bIdx],
+  //         pracC = pracPose[cIdx];
+  //       if (!refA || !refB || !refC || !pracA || !pracB || !pracC) continue;
 
-        const refAngle = computeAngle(refA, refB, refC);
-        const pracAngle = computeAngle(pracA, pracB, pracC);
+  //       const refAngle = computeAngle(refA, refB, refC);
+  //       const pracAngle = computeAngle(pracA, pracB, pracC);
 
-        const diff = Math.abs(refAngle - pracAngle);
-        totalAngleDiff += diff;
-        totalCount++;
-      }
+  //       const diff = Math.abs(refAngle - pracAngle);
+  //       totalAngleDiff += diff;
+  //       totalCount++;
+  //     }
 
-      if (totalCount === 0) {
-        frameScores.push(0);
-        continue;
-      }
+  //     if (totalCount === 0) {
+  //       frameScores.push(0);
+  //       continue;
+  //     }
 
-      const avgAngleDiff = totalAngleDiff / totalCount; // radians
-      const maxGoodAngleDiff = Math.PI / 6; // 30° tolerance
+  //     const avgAngleDiff = totalAngleDiff / totalCount; // radians
+  //     const maxGoodAngleDiff = Math.PI / 6; // 30° tolerance
 
-      // Convert angular difference to accuracy score (0–100)
-      const score = Math.max(
-        0,
-        Math.min(
-          100,
-          Math.round((1 - Math.min(avgAngleDiff / maxGoodAngleDiff, 1)) * 100),
-        ),
-      );
-      frameScores.push(score);
-    }
+  //     // Convert angular difference to accuracy score (0–100)
+  //     const score = Math.max(
+  //       0,
+  //       Math.min(
+  //         100,
+  //         Math.round((1 - Math.min(avgAngleDiff / maxGoodAngleDiff, 1)) * 100),
+  //       ),
+  //     );
+  //     frameScores.push(score);
+  //   }
 
-    // Compute overall accuracy
-    const accuracyValue = Math.round(
-      frameScores.reduce((sum, s) => sum + s, 0) / frameScores.length,
-    );
+  //   // Compute overall accuracy
+  //   const accuracyValue = Math.round(
+  //     frameScores.reduce((sum, s) => sum + s, 0) / frameScores.length,
+  //   );
 
-    // Identify worst frames
-    const worstFrames = frameScores
-      .map((score, idx) => ({ score, frameIdx: idx }))
-      .sort((a, b) => a.score - b.score)
-      .slice(0, 3)
-      .map((item) => item.frameIdx);
+  //   // Identify worst frames
+  //   const worstFrames = frameScores
+  //     .map((score, idx) => ({ score, frameIdx: idx }))
+  //     .sort((a, b) => a.score - b.score)
+  //     .slice(0, 3)
+  //     .map((item) => item.frameIdx);
 
-    // Feedback text generation
-    const feedbackText = accuracyValue >= 80
-      ? `Great job! Overall accuracy: ${accuracyValue}%`
-      : `Overall accuracy: ${accuracyValue}%. Focus on improving at seconds: ${
-        worstFrames
-          .map((idx) => {
-            const seconds = ((idx + 1) * frameIntervalMs) / 1000;
-            const score = frameScores[idx];
-            return `${seconds.toFixed(1)}s (${score}%)`;
-          })
-          .join(", ")
-      }`;
+  //   // Feedback text generation
+  //   const feedbackText = accuracyValue >= 80
+  //     ? `Great job! Overall accuracy: ${accuracyValue}%`
+  //     : `Overall accuracy: ${accuracyValue}%. Focus on improving at seconds: ${
+  //       worstFrames
+  //         .map((idx) => {
+  //           const seconds = ((idx + 1) * frameIntervalMs) / 1000;
+  //           const score = frameScores[idx];
+  //           return `${seconds.toFixed(1)}s (${score}%)`;
+  //         })
+  //         .join(", ")
+  //     }`;
 
-    // Store feedback
-    const feedbackId = freshID() as Feedback;
-    await this.feedback.insertOne({
-      _id: feedbackId,
-      referenceVideo: referenceVideoId,
-      practiceVideo: practiceVideoId,
-      feedbackText,
-      accuracyValue,
-      frameScores,
-      worstFrames,
-    });
+  //   // Store feedback
+  //   const feedbackId = freshID() as Feedback;
+  //   await this.feedback.insertOne({
+  //     _id: feedbackId,
+  //     referenceVideo: referenceVideoId,
+  //     practiceVideo: practiceVideoId,
+  //     feedbackText,
+  //     accuracyValue,
+  //     frameScores,
+  //     worstFrames,
+  //   });
 
-    return { feedback: feedbackId, feedbackText };
-  }
+  //   return { feedback: feedbackId, feedbackText };
+  // }
 
   /**
    * Query: Retrieves the feedback text and accuracy value for a specific feedback record.
