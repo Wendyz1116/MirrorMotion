@@ -37,9 +37,7 @@ export default class UserConcept {
   async register(
     { username, password }: { username: string; password: string },
   ): Promise<{ userID: User } | { error: string }> {
-    console.log("Attempting registration for username:", username, password);
     const existingUser = await this.users.findOne({ username });
-    console.log("Existing user check result:", existingUser);
     if (existingUser) {
       return { error: `Username '${username}' is already taken.` };
     }
@@ -47,7 +45,6 @@ export default class UserConcept {
     const userID = freshID() as User;
     // In a real application, the password would be hashed before storing.
     await this.users.insertOne({ _id: userID, username, password });
-    console.log("User registered with ID:", userID);
     return { userID };
   }
 
@@ -58,28 +55,15 @@ export default class UserConcept {
    */
   async login(
     { username, password }: { username: string; password: string },
-  ): Promise<{ userID: User } | { error: string }> {
-    console.log("Attempting login for username:", username, password);
+  ): Promise<{ user: User } | { error: string }> {
     const user = await this.users.findOne({ username });
 
-    console.log("Found user record:", user);
-
-    if (!user) {
-      console.log("No user found with username:", username);
-      // Generic error message for security reasons
-      throw new Error("Invalid username or password.");
-    }
-
-    // In a real application, this would compare a hashed password.
-    if (user.password !== password) {
-      console.log("No user found with username:", username, password);
-
-      // Generic error message for security reasons
-      throw new Error("Invalid username or password.");
+    if (!user || user.password !== password) {
+      return { error: "Invalid username or password." };
     }
 
     // In a real application, a session ID would be generated and returned.
     // For this concept, returning the userID indicates successful authentication.
-    return { userID: user._id };
+    return { user: user._id };
   }
 }

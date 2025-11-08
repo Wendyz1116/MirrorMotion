@@ -2,7 +2,7 @@ import { Collection, Db } from "npm:mongodb";
 import { Empty, ID } from "@utils/types.ts"; // Assuming ID is `string` and Empty is `{}`
 import { freshID } from "@utils/database.ts"; // Assuming freshID() generates a unique string ID
 import { Storage } from "@google-cloud/storage"; // Import Google Cloud Storage client
-import type { User } from "../UserConcept.ts";
+import type { User } from "../User/UserConcept.ts";
 import type { Feedback } from "../feedback/FeedbackConcept.ts";
 import type { PoseData } from "../PoseBreakdown/PoseBreakdownConcept.ts";
 
@@ -71,34 +71,23 @@ export default class ManageVideoConcept {
    * Action: Uploads a video file to Google Cloud Storage and records its metadata in MongoDB.
    * @param owner The ID of the user uploading the video.
    * @param videoType The type of video ('practice' or 'reference').
-   * @param file The video file to be uploaded (a File object, typically from a FormData submission in the frontend).
+   * @param file The video file to be uploaded (a File object or a base64 string).
    * @requires videoType must be 'practice' or 'reference'.
    * @requires file must be a valid File object.
    * @effects A new video entry is created in MongoDB with a GCS URL, and the video file is uploaded to GCS.
    *
    * @returns The ID of the newly created video, or an error message if the upload fails.
    */
-
   async upload(
     { owner, videoType, file, videoName, referenceVideoId }: {
       owner: User;
       videoType: "practice" | "reference";
-      file: File;
+      file: File | string;
       videoName?: string;
       referenceVideoId?: string;
     },
   ): Promise<{ video: Video } | { error: string }> {
-    if (!this.bucketName) {
-      // init the concept
-    }
-    console.log(
-      "Uploading video for owner:",
-      owner,
-      "of type:",
-      videoType,
-      "file:",
-      file,
-    );
+    console.log("Uploading video for owner:", owner, "file type:", typeof file);
 
     if (videoType !== "practice" && videoType !== "reference") {
       return { error: "videoType must be 'practice' or 'reference'." };
@@ -109,14 +98,72 @@ export default class ManageVideoConcept {
 
     try {
       const bucket = this.storage.bucket(this.bucketName);
+      let uint8Array: Uint8Array;
+      let contentType = "video/mp4";
 
-      // Convert the File object to a stream or buffer for uploading
-      const fileBuffer = await file.arrayBuffer();
-      const uint8Array = new Uint8Array(fileBuffer);
+      // Handle different file input types
+      if (typeof file === "string") {
+        console.log("Processing base64 string", file.slice(0, 50) + "...");
+
+        // Extract the base64 data and content type
+        const matches = file.match(/^data:([A-Za-z0-9\-+\/]+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+          console.error(
+            "Regex match failed. File starts with:",
+            file.slice(0, 100),
+          );
+          return { error: "Invalid base64 data URL format" };
+        }
+
+        contentType = matches[1];
+        const base64Data = matches[2];
+
+        console.log("Extracted content type:", contentType);
+        console.log("Base64 data length:", base64Data.length);
+
+        try {
+          // Decode base64 to binary using a more robust method
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+
+          // Convert binary string to bytes safely
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+
+          uint8Array = bytes;
+          console.log("Decoded buffer size:", uint8Array.length, "bytes");
+        } catch (decodeError) {
+          console.error("Error decoding base64:", decodeError);
+          return { error: "Failed to decode base64 video data" };
+        }
+      } else if (file && typeof file.arrayBuffer === "function") {
+        console.log("Processing File object");
+        const fileBuffer = await file.arrayBuffer();
+        uint8Array = new Uint8Array(fileBuffer);
+        contentType = file.type || "video/mp4";
+      } else {
+        return { error: "Unsupported file format" };
+      }
+
+      if (uint8Array.length === 0) {
+        return { error: "Empty video file" };
+      }
+
+      console.log(
+        "Uploading to GCS:",
+        gcsFileName,
+        "size:",
+        uint8Array.length,
+        "bytes",
+      );
 
       // Upload buffer to GCS
       await bucket.file(gcsFileName).save(uint8Array, {
-        contentType: file.type || "video/mp4",
+        contentType,
+        metadata: {
+          contentType,
+        },
       });
 
       const gcsUrl =
@@ -127,24 +174,25 @@ export default class ManageVideoConcept {
         _id: videoId,
         owner,
         videoType,
-        videoName: videoName ? videoName : "untitled",
-        referenceVideoId: referenceVideoId ? referenceVideoId : "",
+        videoName: videoName || "untitled",
+        referenceVideoId: referenceVideoId || "",
         gcsUrl,
         gcsFileName,
         feedback: null,
         poseData: [],
       });
 
+      console.log("Video uploaded successfully:", videoId);
       return { video: videoId };
     } catch (e: any) {
-      console.error("Error uploading video to GCS or inserting into DB:", e);
+      console.error("Error uploading video:", e);
 
       // Cleanup partially uploaded file
       try {
         await this.storage.bucket(this.bucketName).file(gcsFileName).delete();
       } catch (deleteError) {
         console.warn(
-          `Failed to clean up GCS file ${gcsFileName} after upload error:`,
+          `Failed to clean up GCS file ${gcsFileName}:`,
           deleteError,
         );
       }
@@ -158,15 +206,13 @@ export default class ManageVideoConcept {
    * @param video The video ID to update.
    * @param poseData An array of PoseData to be added (or JSON string).
    * @param caller The user attempting to update the video.
-   * @param matchingFrames (optional) The start and end frames of the pose data range.
    * @throws Throws an Error if validation or update fails.
    */
   async addPosesToVideo(
-    { video: videoId, poseData, caller, matchingFrames }: {
+    { video: videoId, poseData, caller }: {
       video: Video;
       poseData: PoseData[] | string;
       caller: User;
-      matchingFrames?: MatchingFrames;
     },
   ) {
     // Parse poseData if it's a JSON string
@@ -198,10 +244,6 @@ export default class ManageVideoConcept {
       poseData: poseData as PoseData[],
     };
 
-    if (matchingFrames) {
-      updatePayload.matchingFrames = matchingFrames;
-    }
-
     const updateResult = await this.videos.updateOne(
       { _id: videoId },
       { $set: updatePayload },
@@ -218,77 +260,24 @@ export default class ManageVideoConcept {
   }
 
   /**
-   * Action: Retrieves video metadata and its Google Cloud Storage URL.
-   * @param video The ID of the video to retrieve.
-   * @param caller The ID of the user attempting to retrieve the video.
-   * @requires The video must exist.
-   * @requires The caller must be the owner of the video.
-   * @effects Returns the video type, GCS URL, and associated feedback (IDs).
-   * @returns The video details or an error message.
-   */
-  async retrieve(
-    { video: videoId, caller }: { video: Video; caller: User },
-  ): Promise<
-    | {
-      videoId: Video;
-      videoType: "practice" | "reference";
-      gcsUrl: string;
-      videoName: string;
-      referenceVideoId: string;
-      feedback: Feedback;
-      poseData: PoseData[];
-      matchingFrames?: MatchingFrames;
-    }
-    | { error: string }
-  > {
-    console.log("Retrieving video:", videoId, "for caller:", caller);
-
-    const videoDoc = await this.videos.findOne({ _id: videoId });
-
-    if (!videoDoc) {
-      return { error: `Video with ID ${videoId} not found.` };
-    }
-
-    // Ensure the caller is the owner for retrieval access
-    if (videoDoc.owner.toString() !== caller.toString()) {
-      return { error: "Caller is not the owner of this video." };
-    }
-
-    return {
-      videoId: videoDoc._id,
-      videoType: videoDoc.videoType,
-      gcsUrl: videoDoc.gcsUrl,
-      videoName: videoDoc.videoName,
-      referenceVideoId: videoDoc.referenceVideoId,
-      feedback: videoDoc.feedback,
-      poseData: videoDoc.poseData,
-      matchingFrames: videoDoc.matchingFrames,
-    };
-  }
-
-  /**
    * Action: Streams the actual video file from Google Cloud Storage.
    * @param video The ID of the video to stream.
    * @param caller The ID of the user requesting the video.
-   * @param c The Hono context (to build the response)
    * @effects Streams video data directly to the client.
    */
   async streamVideo(
-    { video, caller, c }: { video: Video; caller: User; c: any },
+    { video, caller }: { video: Video; caller: User },
   ): Promise<Response> {
     // TODO: Assume streamVideo is only called after retrieve has verified ownership
     // So no need to re-check here, unless we want extra safety
-    console.log("Streaming video:", video, "for caller:", caller);
-
     const videoDoc = await this.videos.findOne({ _id: video });
     if (!videoDoc) {
-      return c.json({ error: `Video with ID ${video} not found.` }, 404);
+      throw { error: "Invalid username or password." };
     }
 
-    console.log("videoDoc.owner.toString()", videoDoc.owner.toString());
     // Ensure ownership
     if (videoDoc.owner.toString() !== caller.toString()) {
-      return c.json({ error: "Caller is not the owner of this video." }, 403);
+      throw { error: "Caller is not the owner of this video." };
     }
 
     try {
@@ -298,7 +287,7 @@ export default class ManageVideoConcept {
       // Check existence
       const [exists] = await file.exists();
       if (!exists) {
-        return c.json({ error: "Video file not found in storage." }, 404);
+        throw { error: "Video file not found in storage." };
       }
 
       // Fetch metadata for headers
@@ -315,8 +304,7 @@ export default class ManageVideoConcept {
         },
       });
     } catch (error) {
-      console.error("Error streaming video:", error);
-      return c.json({ error: "Failed to stream video." }, 500);
+      throw { error: "Failed to stream video." };
     }
   }
 
@@ -468,38 +456,53 @@ export default class ManageVideoConcept {
   }
 
   // --- Query functions ---
-
-  /**
-   * Query: Retrieves all video documents owned by a specific user.
-   * @param owner The ID of the user whose videos are to be retrieved.
-   * @returns An array of VideoDoc objects.
-   */
-  async getOwnedVideos({ owner }: { owner: User }): Promise<VideoDoc[]> {
-    return await this.videos.find({ owner }).toArray();
-  }
-
-  async getPracticeVideos({
+  async _getPracticeVideos({
     referenceVideoId,
+    caller,
   }: {
     referenceVideoId: string;
+    caller: User;
   }): Promise<VideoDoc[]> {
-    console.log(
-      "Retrieving practice videos for reference video:",
-      referenceVideoId,
-    );
-
-    console.log(
-      "found",
-      await this.videos.find({ videoType: "practice" }).toArray(),
-    );
-    // Find all videos that are of type 'practice' and have the given referenceVideoId
     return await this.videos
-      .find({ videoType: "practice", referenceVideoId })
+      .find({ videoType: "practice", referenceVideoId, owner: caller })
       .toArray();
   }
 
-  async getAllReferenceVideos({ caller }): Promise<VideoDoc[]> {
+  async _getAllReferenceVideos({ caller }): Promise<VideoDoc[]> {
+    console.log("Getting all reference videos for caller:", caller);
+    const a = await this.videos.find({ videoType: "reference", owner: caller })
+      .toArray();
+    console.log("Found reference videos:", a);
     return await this.videos.find({ videoType: "reference", owner: caller })
       .toArray();
+  }
+
+  /**
+   * Query: Retrieves video metadata and its Google Cloud Storage URL.
+   * @param video The ID of the video to retrieve.
+   * @param caller The ID of the user attempting to retrieve the video.
+   * @requires The video must exist.
+   * @requires The caller must be the owner of the video.
+   * @effects Returns the video document.
+   * @returns The video document or throws an error.
+   */
+  async _retrieve(
+    { video: videoId, caller }: { video: Video; caller: User },
+  ): Promise<VideoDoc> {
+    console.log("Retrieving video:", videoId, "for caller:", caller);
+
+    const videoDoc = await this.videos.findOne({ _id: videoId });
+
+    if (!videoDoc) {
+      throw new Error(`Video with ID ${videoId} not found.`);
+    }
+
+    // Ensure the caller is the owner for retrieval access
+    if (videoDoc.owner.toString() !== caller.toString()) {
+      console.log("Caller is not the owner:", caller, "owner:", videoDoc.owner);
+      throw new Error("Caller is not the owner of this video.");
+    }
+
+    return videoDoc;
   }
 }

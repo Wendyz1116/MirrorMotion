@@ -6,4 +6,4 @@ Modular design allows reuse for Feedback analysis or future features.
 
 Update PoseData to match what the pose extraction AI returns, just a coordinate of (x,y,z)
 
-Update PartData to match what the pose extraction AI returns, a landmark label, allong with the coordinate (PoseData)
+Update PartData to match what the pose extraction AI returns, a landmark label, along with the coordinate (PoseData)

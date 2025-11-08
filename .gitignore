@@ -6,3 +6,6 @@ ctx.exe
 node_modules/
 .obsidian/workspace.json
 gen-lang-client-0190230250-fb89b65a603e.json
+src/concepts/concepts.ts
+src/concepts/test_concepts.ts
+src/syncs/syncs.ts

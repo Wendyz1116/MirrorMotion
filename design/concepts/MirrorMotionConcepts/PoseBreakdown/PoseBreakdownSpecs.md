@@ -1,4 +1,5 @@
 ## Concept: PoseBreakdown  
+**Note**: This concept lives mostly in the frontend now (in )
 **Purpose**: extract poses from videos and represent them as collections of parts and points, which can later be compared  
 **Principle**: after a video is processed, poses for each frame are stored as structured data  
 
